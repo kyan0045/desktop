@@ -855,14 +855,18 @@ menuitem[id="placesContext_open:newprivatewindow"] {
 #context_toggleMuteTab,
 #context_toggleMuteSelectedTabs,
 #context_zenToggleMuteWebPanel {
-	--menu-image: url("media-mute.svg");
+    --menu-image: url("media-mute.svg");
+    background-image: var(--menu-image);
+    background-position: right center; /* Adjust this line */
 }
 
 #context-media-unmute,
 #context_toggleMuteTab[muted],
 #context_toggleMuteSelectedTabs[muted],
 #context_zenToggleMuteWebPanel[muted] {
-	--menu-image: url("media-unmute.svg");
+    --menu-image: url("media-unmute.svg");
+    background-image: var(--menu-image);
+    background-position: right center; /* Adjust this line */
 }
 
 #context-media-playbackrate {
