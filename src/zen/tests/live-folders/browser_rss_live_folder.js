@@ -20,6 +20,7 @@ function getRssProviderForTest(sandbox, customState = {}) {
 
   const mockManager = {
     saveState: sandbox.spy(),
+    getFolderForLiveFolder: sandbox.stub(),
   };
 
   const instance = new nsRssLiveFolderProvider({
@@ -338,6 +339,68 @@ add_task(async function test_fetch_network_error() {
     items,
     "zen-live-folder-failed-fetch",
     "Should return an error on failed fetch"
+  );
+
+  sandbox.restore();
+});
+
+add_task(async function test_feed_url_update_uses_latest_metadata() {
+  info("should persist each feed URL update and use only the latest title");
+
+  const sandbox = sinon.createSandbox();
+  const instance = getRssProviderForTest(sandbox);
+  const folder = { label: "Original Feed" };
+  const firstMetadata = Promise.withResolvers();
+  const secondMetadata = Promise.withResolvers();
+  const firstUrl = "https://example.com/first.xml";
+  const secondUrl = "https://example.com/second.xml";
+  const option = {
+    getAttribute: name => (name === "option-key" ? "feedURL" : null),
+  };
+
+  instance.manager.getFolderForLiveFolder.returns(folder);
+  sandbox.stub(instance, "refresh");
+  const promptForFeedUrl = sandbox.stub(
+    nsRssLiveFolderProvider,
+    "promptForFeedUrl"
+  );
+  promptForFeedUrl.onFirstCall().resolves(firstUrl);
+  promptForFeedUrl.onSecondCall().resolves(secondUrl);
+  instance.getMetadata.onFirstCall().returns(firstMetadata.promise);
+  instance.getMetadata.onSecondCall().returns(secondMetadata.promise);
+
+  const firstUpdate = instance.onOptionTrigger(option);
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  Assert.equal(instance.state.url, firstUrl, "Should store the first URL");
+  Assert.ok(instance.refresh.calledOnce, "Should refresh after the first update");
+  Assert.equal(
+    instance.manager.saveState.callCount,
+    1,
+    "Should save before the first metadata request finishes"
+  );
+
+  const secondUpdate = instance.onOptionTrigger(option);
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  Assert.equal(instance.state.url, secondUrl, "Should store the second URL");
+  Assert.equal(instance.refresh.callCount, 2, "Should refresh after both updates");
+  Assert.equal(
+    instance.manager.saveState.callCount,
+    2,
+    "Should save before either metadata request finishes"
+  );
+
+  secondMetadata.resolve({ label: "Second Feed" });
+  await secondUpdate;
+  Assert.equal(folder.label, "Second Feed", "Should apply the latest feed title");
+
+  firstMetadata.resolve({ label: "First Feed" });
+  await firstUpdate;
+  Assert.equal(
+    folder.label,
+    "Second Feed",
+    "Should ignore metadata from the superseded update"
   );
 
   sandbox.restore();
