@@ -283,6 +283,11 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
         );
         if (url) {
           this.state.url = url;
+          const { label } = await this.getMetadata();
+          const folder = this.manager.getFolderForLiveFolder(this);
+          if (folder && label) {
+            folder.label = label;
+          }
           this.refresh();
         }
         break;
