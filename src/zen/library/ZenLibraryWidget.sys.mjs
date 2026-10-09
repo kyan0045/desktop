@@ -138,11 +138,10 @@ class ZenLibraryDownloadStack {
   }
 
   #close() {
+    this.#markSeen();
     if (!this.#footButtons.hasAttribute("zen-library-stack-open")) {
       return;
     }
-    this.#recentNewDownload = false;
-    this.#updateBadgeShowing();
     for (const host of [this.#footButtons, this.#downloadsListWrapper]) {
       host.removeAttribute("zen-library-stack-open");
     }
@@ -365,6 +364,8 @@ class ZenLibraryDownloadStack {
         "--download-image",
         `${preview ? `url('${preview}'), ` : ""}url('${this.#iconUrl(download)}')`
       );
+    } else {
+      badge.style.removeProperty("--download-image");
     }
     badge.querySelector(
       ".zen-library-download-progress-arc"
@@ -378,6 +379,14 @@ class ZenLibraryDownloadStack {
       "zen-library-badge",
       this.#isPending(this.#downloads.at(-1)) || this.#recentNewDownload
     );
+  }
+
+  #markSeen() {
+    if (!this.#recentNewDownload) {
+      return;
+    }
+    this.#recentNewDownload = false;
+    this.#updateBadgeShowing();
   }
 
   // DownloadList view
@@ -414,6 +423,9 @@ class ZenLibraryDownloadStack {
     if (index !== -1) {
       this.#downloads.splice(index, 1);
     }
+    if (!this.#downloads.length) {
+      this.#markSeen();
+    }
     this.#update();
   }
 
@@ -436,6 +448,7 @@ class ZenLibraryDownloadStack {
    */
   attachLibrary(library) {
     this.#library = library;
+    this.#markSeen();
     this.#applyDownloadState();
   }
 
